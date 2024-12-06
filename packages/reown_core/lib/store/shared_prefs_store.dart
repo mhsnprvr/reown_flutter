@@ -68,7 +68,12 @@ class SharedPrefsStores implements IStore<Map<String, dynamic>> {
     if (memoryStore) {
       return _map.containsKey(keyWithPrefix);
     }
-    return prefs.containsKey(keyWithPrefix);
+    try {
+      return prefs.containsKey(keyWithPrefix);
+    } catch (e) {
+      print(e);
+      return false;
+    }
   }
 
   /// Gets all of the values of the store
@@ -114,6 +119,7 @@ class SharedPrefsStores implements IStore<Map<String, dynamic>> {
 
   @override
   Future<void> deleteAll() async {
+    prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
     for (var key in keys) {
       if (key.startsWith(storagePrefix)) {
@@ -127,11 +133,18 @@ class SharedPrefsStores implements IStore<Map<String, dynamic>> {
       return null;
     }
 
-    if (prefs.containsKey(key)) {
-      final value = prefs.getString(key)!;
-      return jsonDecode(value);
-    } else {
-      throw Errors.getInternalError(Errors.NO_MATCHING_KEY);
+    try {
+      if (prefs.containsKey(key)) {
+        final value = prefs.getString(key)!;
+        return jsonDecode(value);
+      } else {
+        throw Errors.getInternalError(Errors.NO_MATCHING_KEY);
+      }
+    } catch (e) {
+      throw Errors.getInternalError(
+        Errors.MISSING_OR_INVALID,
+        context: e.toString(),
+      );
     }
   }
 
@@ -155,6 +168,8 @@ class SharedPrefsStores implements IStore<Map<String, dynamic>> {
     if (memoryStore) {
       return;
     }
+    prefs = await SharedPreferences.getInstance();
+
     await prefs.remove(key);
   }
 
